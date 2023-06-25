@@ -1,4 +1,6 @@
 import multiprocessing
+import time
+
 import pika
 import json
 
@@ -19,50 +21,22 @@ class Broker:
         self.channel = self.connection.channel()
 
         self._declare_queues_to_consume_from()
-        self._declare_queue_to_publish_to()
 
     def _declare_queues_to_consume_from(self):
-        self.channel.exchange_declare(
-            exchange=Config.PUBLISHER_EXCHANGE_NAME,
-            exchange_type='direct'
-        )
-        self.channel.exchange_declare(
-            exchange=Config.SUBSCRIBER_EXCHANGE_NAME,
-            exchange_type='direct'
-        )
-
-        self.channel.queue_declare(queue=Config.PUBLISHER_QUEUE_NAME)
-        self.channel.queue_declare(queue=Config.SUBSCRIBER_QUEUE_NAME)
-
-        self.channel.queue_bind(
-            queue=Config.PUBLISHER_QUEUE_NAME,
-            exchange=Config.PUBLISHER_EXCHANGE_NAME,
-            routing_key=f'{Config.PUBLISHER_ROUTING_KEY}-{self.index}'
-        )
-        self.channel.queue_bind(
-            queue=Config.SUBSCRIBER_QUEUE_NAME,
-            exchange=Config.SUBSCRIBER_EXCHANGE_NAME,
-            routing_key=Config.SUBSCRIBER_ROUTING_KEY
-        )
-
+        self.channel.queue_declare(queue=f'{Config.PUBLISHER_QUEUE_NAME}-{self.index}')
         self.channel.basic_consume(
-            queue=Config.PUBLISHER_QUEUE_NAME,
+            queue=f'{Config.PUBLISHER_QUEUE_NAME}-{self.index}',
             on_message_callback=self._callback_consume_from_publisher,
             auto_ack=True
         )
+
+        self.channel.queue_declare(queue=Config.SUBSCRIBER_QUEUE_NAME)
+
         self.channel.basic_consume(
             queue=Config.SUBSCRIBER_QUEUE_NAME,
             on_message_callback=self._callback_consume_from_subscriber,
             auto_ack=True
         )
-
-    def _declare_queue_to_publish_to(self):
-        self.channel.exchange_declare(
-            exchange=Config.MATCHING_EXCHANGE_NAME,
-            exchange_type='direct'
-        )
-
-        self.channel.queue_declare(queue=Config.MATCHING_QUEUE_NAME)
 
     def start_consuming(self):
         print(f'[Broker-{self.index}] Started.')
@@ -70,7 +44,6 @@ class Broker:
 
     def _callback_consume_from_publisher(self, ch, method, properties, body):
         publication = json.loads(body)
-        print(f"[Broker-{self.index}] Received from publisher: {publication}")
 
         for pair in self.routing_table:
             subscriber_id = pair['id']
@@ -90,14 +63,14 @@ class Broker:
         number_publication = int(publication['publication'].split('-')[1])
         number_subscription = int(subscription['subscription'].split('-')[1])
 
-        return number_publication == number_subscription == 1
+        return number_publication == number_subscription
 
     def _publish_matched_subscription(self, publication: dict, subscriber_id: str):
         message_to_send = json.dumps(publication, indent=4).encode('utf-8')
 
         self.channel.basic_publish(
-            exchange=Config.MATCHING_EXCHANGE_NAME,
-            routing_key=f'{Config.MATCHING_ROUTING_KEY_PREFIX}-{subscriber_id}',
+            exchange='',
+            routing_key=f'{Config.MATCHING_QUEUE_NAME}-{subscriber_id}',
             body=message_to_send
         )
         print(f"[Broker-{self.index}] Published to subscriber following matched publication: {publication}, id: {subscriber_id}")

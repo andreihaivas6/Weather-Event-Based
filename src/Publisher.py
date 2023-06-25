@@ -18,12 +18,8 @@ class Publisher:
         ))
         self.channel = self.connection.channel()
 
-        self.channel.exchange_declare(
-            exchange=Config.PUBLISHER_EXCHANGE_NAME,
-            exchange_type='direct'
-        )
-
-        self.channel.queue_declare(queue=Config.PUBLISHER_QUEUE_NAME)
+        for index in range(Config.NO_BROKERS):
+            self.channel.queue_declare(queue=f'{Config.PUBLISHER_QUEUE_NAME}-{index + 1}')
 
         print('[Publisher] Started.')
 
@@ -32,8 +28,8 @@ class Publisher:
 
         for index in range(Config.NO_BROKERS):
             self.channel.basic_publish(
-                exchange=Config.PUBLISHER_EXCHANGE_NAME,
-                routing_key=f'{Config.PUBLISHER_ROUTING_KEY}-{index + 1}',
+                exchange='',
+                routing_key=f'{Config.PUBLISHER_QUEUE_NAME}-{index + 1}',
                 body=message_to_send
             )
 
