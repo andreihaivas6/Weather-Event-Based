@@ -4,7 +4,10 @@ import time
 import pika
 import json
 
+from google.protobuf.json_format import MessageToJson
+
 from Config import Config
+from src.generator import publication_pb2
 
 
 class Broker:
@@ -43,15 +46,22 @@ class Broker:
         self.channel.start_consuming()
 
     def _callback_consume_from_publisher(self, ch, method, properties, body):
-        publication = json.loads(body)
-        print(f"[Broker-{self.index}] Received from publisher: {publication}")
+        # publication = json.loads(body)
+        new_msg = publication_pb2.Publication()
+        new_msg.ParseFromString(body)
+        json_data = MessageToJson(new_msg)
+        json_data = json.loads(json_data)
+        transformed_data = json_data.copy()
+        transformed_data['date'] = f"{json_data['date']['day']}/{json_data['date']['month']}/{json_data['date']['year']}"
+
+        print(f"[Broker-{self.index}] Received from publisher: {transformed_data}")
 
         for pair in self.routing_table:
             subscriber_id = pair['id']
             subscription = pair['subscription']
 
-            if Broker.publication_matches_subscription(publication, subscription):
-                self._publish_matched_subscription(publication, subscriber_id)
+            if Broker.publication_matches_subscription(transformed_data, subscription):
+                self._publish_matched_subscription(transformed_data, subscriber_id)
 
     def _callback_consume_from_subscriber(self, ch, method, properties, body):
         message = json.loads(body)
