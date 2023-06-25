@@ -66,7 +66,6 @@ if __name__ == '__main__':
     while True:
         generator = PublicationsGeneratorParallel(100_000, 4)
         publications = generator.generate()
-
         for publication in publications:
             publisher.publish(publication, time.time())
 

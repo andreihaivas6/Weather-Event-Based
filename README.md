@@ -20,3 +20,5 @@ c) egalitate 100%
 
     egalitate 25%
     894 + 917 + 215 = 2026
+
+`taskkill /F /PID 1234`
