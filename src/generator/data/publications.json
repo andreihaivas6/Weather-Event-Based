@@ -1,0 +1,92 @@
+[
+    {
+        "stationId": 87,
+        "city": "Iasi",
+        "temperature": 33,
+        "rain": 0.42,
+        "wind": 33,
+        "direction": "SW",
+        "date": "13/04/2013"
+    },
+    {
+        "stationId": 17,
+        "city": "Constanta",
+        "temperature": 47,
+        "rain": 0.42,
+        "wind": 83,
+        "direction": "NE",
+        "date": "14/11/2015"
+    },
+    {
+        "stationId": 68,
+        "city": "Dragalina",
+        "temperature": 10,
+        "rain": 0.33,
+        "wind": 65,
+        "direction": "N",
+        "date": "09/03/2015"
+    },
+    {
+        "stationId": 21,
+        "city": "Constanta",
+        "temperature": 4,
+        "rain": 0.22,
+        "wind": 65,
+        "direction": "S",
+        "date": "05/02/2002"
+    },
+    {
+        "stationId": 87,
+        "city": "Timisoara",
+        "temperature": 1,
+        "rain": 0.58,
+        "wind": 55,
+        "direction": "SE",
+        "date": "19/04/2014"
+    },
+    {
+        "stationId": 13,
+        "city": "Timisoara",
+        "temperature": 29,
+        "rain": 0.63,
+        "wind": 86,
+        "direction": "S",
+        "date": "04/12/2021"
+    },
+    {
+        "stationId": 2,
+        "city": "Constanta",
+        "temperature": 49,
+        "rain": 0.67,
+        "wind": 59,
+        "direction": "E",
+        "date": "08/12/2016"
+    },
+    {
+        "stationId": 85,
+        "city": "Cluj-Napoca",
+        "temperature": -3,
+        "rain": 0.48,
+        "wind": 50,
+        "direction": "E",
+        "date": "14/12/2019"
+    },
+    {
+        "stationId": 45,
+        "city": "Dragalina",
+        "temperature": -10,
+        "rain": 0.81,
+        "wind": 23,
+        "direction": "SW",
+        "date": "11/03/2012"
+    },
+    {
+        "stationId": 2,
+        "city": "Cluj-Napoca",
+        "temperature": -7,
+        "rain": 0.28,
+        "wind": 40,
+        "direction": "NW",
+        "date": "08/08/2004"
+    }
+]
