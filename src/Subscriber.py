@@ -29,12 +29,8 @@ class Subscriber:
 
         print(f'[Subscriber-{self.index}] Started.')
 
-    def subscribe(self, subscription: List[dict]):
-        message_to_send = {
-            'id': self.index,
-            'subscription': subscription
-        }
-        message_to_send_bytes = json.dumps(message_to_send, indent=4).encode('utf-8')
+    def subscribe(self, subscription: dict):
+        message_to_send_bytes = json.dumps(subscription, indent=4).encode('utf-8')
 
         self.channel.basic_publish(
             exchange='',
@@ -42,7 +38,7 @@ class Subscriber:
             body=message_to_send_bytes
         )
 
-        print(f'[Subscriber-{self.index}] Subscribed to broker: {message_to_send}')
+        print(f'[Subscriber-{self.index}] Subscribed to broker: {subscription}')
 
         self._declare_queue_to_receive_from()
         self.channel.start_consuming()
@@ -84,17 +80,57 @@ def start_subscriber(index: int, need_complex_subscription: bool):
     )
 
     subscription = generator.generate()[0]
-    subscriber.subscribe(subscription)
+
+    if TEST_SUBSCRIPTIONS:
+        if index == 1:  # subscriptie simpla
+            subscription = [
+                {
+                    'field': 'temperature',
+                    'operator': '>',
+                    'value': 0
+                }
+            ]
+        if index == 2:  # subscriptie complexa
+            subscription = [
+                {
+                    'field': 'avg_temperature',
+                    'operator': '>',
+                    'value': 0
+                },
+                {
+                    'field': 'city',
+                    'operator': '!=',
+                    'value': 'Iasi'
+                }
+            ]
+        if index == 3:  # nothing
+            subscription = [
+                {
+                    'field': 'temperature',
+                    'operator': '>',
+                    'value': 5000
+                }
+            ]
+
+    subscriber.subscribe({
+        'id': index,
+        'is_complex': need_complex_subscription,
+        'subscription': subscription
+    })
+
+
+TEST_SUBSCRIPTIONS = True
 
 
 if __name__ == '__main__':
+    need_complex_subscription = [False, True, False]
     subscriber_processes = [
         multiprocessing.Process(
             name=f'Subscriber-{index}',
             target=start_subscriber,
             args=(
                 index + 1,
-                False if index % 2 == 0 else True,
+                need_complex_subscription[index]
             )
         )
         for index in range(Config.NO_SUBSCRIBERS)

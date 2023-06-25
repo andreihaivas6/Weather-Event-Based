@@ -11,11 +11,15 @@ from src.generator import publication_pb2
 
 
 class Broker:
+    FIELD_WITH_AVG = ['temperature', 'wind', 'rain']
+
     def __init__(self, index: int):
         super().__init__()
 
         self.index = index
         self.routing_table: list = list()
+
+        self.last_publications: list = list()
 
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(
             host=Config.CONNECTION_HOST,
@@ -55,13 +59,27 @@ class Broker:
         transformed_data['date'] = f"{json_data['date']['day']}/{json_data['date']['month']}/{json_data['date']['year']}"
 
         print(f"[Broker-{self.index}] Received from publisher: {transformed_data}")
+        # publication = json.loads(body)
+        # print(f"[Broker-{self.index}] Received from publisher: {publication}")
 
-        for pair in self.routing_table:
-            subscriber_id = pair['id']
-            subscription = pair['subscription']
+        self.last_publications.append(transformed_data)
 
-            if Broker.publication_matches_subscription(transformed_data, subscription):
+        for data in self.routing_table:
+            subscriber_id = data['id']
+            is_complex = data['is_complex']
+            subscription = data['subscription']
+
+            if not is_complex and self._publication_matches_simple_subscription(transformed_data, subscription):
                 self._publish_matched_subscription(transformed_data, subscriber_id)
+
+            if is_complex and len(self.last_publications) == Config.WINDOWS_SIZE and self._window_matches_complex_subscription(subscription):
+                self._publish_matched_subscription(
+                    {
+                        'publications': self.last_publications,
+                    },
+                    subscriber_id
+                )
+                self.last_publications.clear()
 
     def _callback_consume_from_subscriber(self, ch, method, properties, body):
         message = json.loads(body)
@@ -69,12 +87,47 @@ class Broker:
 
         print(f"[Broker-{self.index}] Received from subscriber: {message}")
 
-    @staticmethod
-    def publication_matches_subscription(publication, subscription):
-        number_publication = int(publication['publication'].split('-')[1])
-        number_subscription = int(subscription['subscription'].split('-')[1])
+    def _publication_matches_simple_subscription(self, publication, subscription) -> bool:
+        for data in subscription:
+            field = data['field']
 
-        return number_publication == number_subscription
+            value_from_publication = publication[field]
+            value_from_subscription = data['value']
+
+            if not Broker.condition_between_2_values(
+                    value_from_publication, value_from_subscription, data['operator']
+            ):
+                return False
+
+        return True
+
+    def _window_matches_complex_subscription(self, subscription) -> bool:
+        for data in subscription:
+            field = data['field']
+            value_from_subscription = data['value']
+
+            if not str(field).startswith('avg_'):
+                for publication in self.last_publications:
+                    value_from_publication = publication[field]
+
+                    if not Broker.condition_between_2_values(
+                            value_from_publication, value_from_subscription, data['operator']
+                    ):
+                        return False
+            else:
+                average_result = 0
+                any_value = False
+
+                for publication in self.last_publications:
+                    average_result += publication[field[4:]] / Config.WINDOWS_SIZE
+                    any_value = True
+
+                if not any_value or not Broker.condition_between_2_values(
+                        average_result, value_from_subscription, data['operator']
+                ):
+                    return False
+
+        return True
 
     def _publish_matched_subscription(self, publication: dict, subscriber_id: str):
         message_to_send = json.dumps(publication, indent=4).encode('utf-8')
@@ -84,7 +137,22 @@ class Broker:
             routing_key=f'{Config.MATCHING_QUEUE_NAME}-{subscriber_id}',
             body=message_to_send
         )
-        print(f"[Broker-{self.index}] Published to subscriber following matched publication: {publication}, id: {subscriber_id}")
+        print(
+            f"[Broker-{self.index}] Published to subscriber following matched publication: {publication}, id: {subscriber_id}")
+
+    @staticmethod
+    def condition_between_2_values(value1, value2, operator: str) -> bool:
+        return value1 == value2 \
+            if operator == '=' \
+            else value1 >= value2 \
+            if operator == '>=' \
+            else value1 > value2 \
+            if operator == '>' \
+            else value1 <= value2 \
+            if operator == '<=' \
+            else value1 < value2 \
+            if operator == '<' \
+            else value1 != value2
 
     def __str__(self):
         return f'Broker-{self.index}'
@@ -107,4 +175,3 @@ if __name__ == '__main__':
 
     for process in broker_processes:
         process.start()
-
