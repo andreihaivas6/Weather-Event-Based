@@ -123,14 +123,13 @@ TEST_SUBSCRIPTIONS = True
 
 
 if __name__ == '__main__':
-    need_complex_subscription = [False, True, False]
     subscriber_processes = [
         multiprocessing.Process(
             name=f'Subscriber-{index}',
             target=start_subscriber,
             args=(
                 index + 1,
-                need_complex_subscription[index]
+                False if index % 2 == 0 else True
             )
         )
         for index in range(Config.NO_SUBSCRIBERS)

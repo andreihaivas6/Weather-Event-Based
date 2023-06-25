@@ -1,8 +1,10 @@
 import multiprocessing
+import os
 import time
 
 import pika
 import json
+import sched
 
 from google.protobuf.json_format import MessageToJson
 
@@ -20,6 +22,12 @@ class Broker:
         self.routing_table: list = list()
 
         self.last_publications: list = list()
+
+        if os.path.exists(f'broker-{index + 1}-serializer.json'):
+            with open(f'broker-{index + 1}-serializer.json', 'r') as file:
+                data = json.load(file)
+                self.routing_table = data['routing_table']
+                self.last_publications = data['last_publications']
 
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(
             host=Config.CONNECTION_HOST,
@@ -46,7 +54,9 @@ class Broker:
         )
 
     def start_consuming(self):
+        print(f'[Broker-{self.index}] PID: {multiprocessing.current_process().pid}')
         print(f'[Broker-{self.index}] Started.')
+
         self.channel.start_consuming()
 
     def _callback_consume_from_publisher(self, ch, method, properties, body):
@@ -84,6 +94,7 @@ class Broker:
     def _callback_consume_from_subscriber(self, ch, method, properties, body):
         message = json.loads(body)
         self.routing_table.append(message)
+        self.save_state()
 
         print(f"[Broker-{self.index}] Received from subscriber: {message}")
 
@@ -160,6 +171,14 @@ class Broker:
             if operator == '<' \
             else value1 != value2
 
+    def save_state(self):
+        data = {
+            'routing_table': self.routing_table,
+            'last_publications': self.last_publications
+        }
+        with open(f'broker-{self.index}-serializer.json', 'w') as fp:
+            json.dump(data, fp, indent=4)
+
     def __str__(self):
         return f'Broker-{self.index}'
 
@@ -172,12 +191,31 @@ def start_broker(index):
 if __name__ == '__main__':
     broker_processes = [
         multiprocessing.Process(
-            name=f'Broker-{index}',
+            name=f'Broker-{index + 1}',
             target=start_broker,
             args=(index + 1,)
         )
         for index in range(Config.NO_BROKERS)
     ]
 
-    for process in broker_processes:
+    for index, process in enumerate(broker_processes):
+        if os.path.exists(f'broker-{index + 1}-serializer.json'):
+            os.remove(f'broker-{index + 1}-serializer.json')
         process.start()
+
+
+    def check_brokers_alive(scheduler, broker_processes: list):
+        scheduler.enter(5, 1, check_brokers_alive, (scheduler, broker_processes, ))
+        for index, process in enumerate(broker_processes):
+            if not process.is_alive():
+                print(f'Process {process.name} is not alive. Restarting...')
+                broker_processes[index] = multiprocessing.Process(
+                    name=f'Broker-{index + 1}',
+                    target=start_broker,
+                    args=(index + 1,)
+                )
+                broker_processes[index].start()
+
+    my_scheduler = sched.scheduler(time.time, time.sleep)
+    my_scheduler.enter(5, 1, check_brokers_alive, (my_scheduler, broker_processes, ))
+    my_scheduler.run()

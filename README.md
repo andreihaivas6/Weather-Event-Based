@@ -8,3 +8,5 @@ http://localhost:15672/
 
 user & pass: `guest`
 
+
+`taskkill /F /PID 1234`
