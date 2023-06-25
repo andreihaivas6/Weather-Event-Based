@@ -15,3 +15,8 @@ message Publication {
     string direction = 6;
     Date date = 7;
 }
+
+message MyPublication {
+    Publication publication = 1;
+    float time = 2;
+}
