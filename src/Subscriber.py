@@ -87,7 +87,7 @@ def start_subscriber(index: int, need_complex_subscription: bool):
                 {
                     'field': 'temperature',
                     'operator': '>',
-                    'value': 0
+                    'value': 5550
                 }
             ]
         if index == 2:  # subscriptie complexa
@@ -95,12 +95,12 @@ def start_subscriber(index: int, need_complex_subscription: bool):
                 {
                     'field': 'avg_temperature',
                     'operator': '>',
-                    'value': 0
+                    'value': -10
                 },
                 {
-                    'field': 'city',
+                    'field': 'rain',
                     'operator': '!=',
-                    'value': 'Iasi'
+                    'value': '0.05'
                 }
             ]
         if index == 3:  # nothing

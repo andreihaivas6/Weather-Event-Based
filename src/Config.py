@@ -8,7 +8,7 @@ class Config:
 
     MATCHING_QUEUE_NAME = 'matching_queue_name'
 
-    WINDOWS_SIZE = 10
+    WINDOWS_SIZE = 5
 
     NO_BROKERS = 2
     NO_SUBSCRIBERS = 3

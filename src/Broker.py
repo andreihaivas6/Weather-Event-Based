@@ -58,7 +58,7 @@ class Broker:
         transformed_data = json_data.copy()
         transformed_data['date'] = f"{json_data['date']['day']}/{json_data['date']['month']}/{json_data['date']['year']}"
 
-        print(f"[Broker-{self.index}] Received from publisher: {transformed_data}")
+        # print(f"[Broker-{self.index}] Received from publisher: {transformed_data}")
         # publication = json.loads(body)
         # print(f"[Broker-{self.index}] Received from publisher: {publication}")
 
@@ -90,6 +90,8 @@ class Broker:
     def _publication_matches_simple_subscription(self, publication, subscription) -> bool:
         for data in subscription:
             field = data['field']
+            if field not in publication:
+                return False
 
             value_from_publication = publication[field]
             value_from_subscription = data['value']
@@ -108,6 +110,8 @@ class Broker:
 
             if not str(field).startswith('avg_'):
                 for publication in self.last_publications:
+                    if field not in publication:
+                        continue
                     value_from_publication = publication[field]
 
                     if not Broker.condition_between_2_values(
@@ -119,6 +123,8 @@ class Broker:
                 any_value = False
 
                 for publication in self.last_publications:
+                    if field[4:] not in publication:
+                        continue
                     average_result += publication[field[4:]] / Config.WINDOWS_SIZE
                     any_value = True
 
