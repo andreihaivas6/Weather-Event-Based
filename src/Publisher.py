@@ -2,6 +2,7 @@ import pika
 import json
 
 from Config import Config
+from src.generator.PublicationsGeneratorParallel import PublicationsGeneratorParallel
 
 
 class Publisher:
@@ -41,8 +42,11 @@ class Publisher:
 
 if __name__ == '__main__':
     publisher = Publisher()
-    for i in range(10):
-        publisher.publish({
-            'publication': f'pub-{i}'
-        })
+
+    generator = PublicationsGeneratorParallel(10)
+    publications = generator.generate()
+
+    for publication in publications:
+        publisher.publish(publication)
+
     publisher.close()

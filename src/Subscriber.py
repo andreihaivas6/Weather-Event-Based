@@ -2,7 +2,10 @@ import json
 import multiprocessing
 import pika
 
+from typing import List
+
 from Config import Config
+from src.generator.SubscriptionsGeneratorParallel import SubscriptionsGeneratorParallel
 
 
 class Subscriber:
@@ -26,7 +29,7 @@ class Subscriber:
 
         print(f'[Subscriber-{self.index}] Started.')
 
-    def subscribe(self, subscription: dict):
+    def subscribe(self, subscription: List[dict]):
         message_to_send = {
             'id': self.index,
             'subscription': subscription
@@ -61,11 +64,27 @@ class Subscriber:
         self.connection.close()
 
 
-def start_subscriber(index: int):
+def start_subscriber(index: int, need_complex_subscription: bool):
     subscriber = Subscriber(index)
-    subscriber.subscribe({
-        'subscription': f'sub-{index}'
-    })
+
+    generator = SubscriptionsGeneratorParallel(
+        100,
+        need_complex_subscription,
+        1,
+        {
+            'stationId': 50,
+            'city': 50,
+            'temperature': 50,
+            'rain': 50,
+            'wind': 50,
+            'direction': 50,
+            'date': 50,
+        },
+        50
+    )
+
+    subscription = generator.generate()[0]
+    subscriber.subscribe(subscription)
 
 
 if __name__ == '__main__':
@@ -73,7 +92,10 @@ if __name__ == '__main__':
         multiprocessing.Process(
             name=f'Subscriber-{index}',
             target=start_subscriber,
-            args=(index + 1,)
+            args=(
+                index + 1,
+                False if index % 2 == 0 else True,
+            )
         )
         for index in range(Config.NO_SUBSCRIBERS)
     ]

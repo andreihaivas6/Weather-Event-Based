@@ -44,6 +44,7 @@ class Broker:
 
     def _callback_consume_from_publisher(self, ch, method, properties, body):
         publication = json.loads(body)
+        print(f"[Broker-{self.index}] Received from publisher: {publication}")
 
         for pair in self.routing_table:
             subscriber_id = pair['id']

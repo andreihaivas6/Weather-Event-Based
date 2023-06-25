@@ -2,7 +2,7 @@ import random
 
 from typing import List, Dict, Tuple
 
-from src.PublicationsGenerator import PublicationsGenerator
+from src.generator.PublicationsGenerator import PublicationsGenerator
 
 
 class SubscriptionsGenerator:

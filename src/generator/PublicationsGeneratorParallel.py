@@ -5,7 +5,7 @@ import time
 from multiprocessing import Pool
 from typing import List, Dict
 
-from PublicationsGenerator import PublicationsGenerator
+from src.generator.PublicationsGenerator import PublicationsGenerator
 
 
 class PublicationsGeneratorParallel:

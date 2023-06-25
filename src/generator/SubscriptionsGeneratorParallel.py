@@ -1,26 +1,64 @@
 import json
 import os
+import random
 import time
 from multiprocessing import Pool
 from typing import List, Dict, Tuple
 
-from SubscriptionsGenerator import SubscriptionsGenerator
+from src.generator.SubscriptionsGenerator import SubscriptionsGenerator
 
 
 class SubscriptionsGeneratorParallel:
-    def __init__(self, no_subscriptions: int, no_processes: int,
+    def __init__(self, no_subscriptions: int, need_complex_subscription: bool, no_processes: int,
                  frequency_percent_of_fields: dict, frequency_percent_of_equal_on_city: float):
         self.no_subscriptions = no_subscriptions
         self.no_processes = no_processes
         self.frequency_percent_of_fields = frequency_percent_of_fields
         self.frequency_percent_of_equal_on_city = frequency_percent_of_equal_on_city
+        self.need_complex_subscription = need_complex_subscription
         self.duration = 0
+
+    def generate_complex_subscription(self, result):
+        for subscription in result:
+            created = False
+            has_temperature = False
+            for data in subscription:
+                if random.randint(0, 100) >= 25:
+                    if data['field'] == 'temperature':
+                        data['field'] = 'avg_temperature'
+                        created = True
+                if random.randint(0, 100) >= 25:
+                    if data['field'] == 'wind':
+                        data['field'] = 'avg_wind'
+                        created = True
+                if random.randint(0, 100) >= 25:
+                    if data['field'] == 'rain':
+                       data['field'] = 'avg_rain'
+                       created = True
+
+                if data['field'] == 'temperature':
+                    has_temperature = True
+
+            if not created:
+                if has_temperature:
+                    for data in subscription:
+                        if data['field'] == 'temperature':
+                            data['field'] = 'avg_temperature'
+                else:
+                    subscription.append({
+                        'field': 'avg_temperature',
+                        'operator': random.choice(SubscriptionsGenerator.OPERATORS),
+                        'value': random.randint(-20, 50)
+                    })
+        return result
 
     def generate(self) -> List[List[Dict]]:
         start = time.time()
 
         result = self._generate()
 
+        if self.need_complex_subscription:
+            result = self.generate_complex_subscription(result)
         end = time.time()
         self.duration = round(end - start, 2)
 
