@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 
 import pika
@@ -29,21 +30,21 @@ class Publisher:
 
         print('[Publisher] Started.')
 
-    def publish(self, message: dict):
-        msg = publication_pb2.Publication()
-        msg.stationId = message.get('stationId')
-        msg.city = message.get('city')
-        msg.temperature =message.get('temperature')
-        msg.rain = message.get('rain')
-        msg.wind = message.get('wind')
-        msg.direction = message.get('direction')
+    def publish(self, message: dict, timer: float):
+        msg = publication_pb2.MyPublication()
+        msg.publication.stationId = message.get('stationId')
+        msg.publication.city = message.get('city')
+        msg.publication.temperature =message.get('temperature')
+        msg.publication.rain = message.get('rain')
+        msg.publication.wind = message.get('wind')
+        msg.publication.direction = message.get('direction')
         day = message.get('date').split('/')[0]
         month = message.get('date').split('/')[1]
         year = message.get('date').split('/')[2]
-        msg.date.day = day
-        msg.date.month = month
-        msg.date.year = year
-
+        msg.publication.date.day = day
+        msg.publication.date.month = month
+        msg.publication.date.year = year
+        msg.time = timer
         serialized_msg = msg.SerializeToString()
 
         for index in range(Config.NO_BROKERS):
@@ -62,10 +63,15 @@ class Publisher:
 if __name__ == '__main__':
     publisher = Publisher()
 
-    generator = PublicationsGeneratorParallel(10)
-    publications = generator.generate()
-
-    for publication in publications:
-        publisher.publish(publication)
+    while True:
+        generator = PublicationsGeneratorParallel(100_000, 4)
+        publications = generator.generate()
+        for publication in publications:
+            publisher.publish(publication, time.time())
+    # generator = PublicationsGeneratorParallel(10)
+    # publications = generator.generate()
+    #
+    # for publication in publications:
+    #     publisher.publish(publication)
 
     publisher.close()

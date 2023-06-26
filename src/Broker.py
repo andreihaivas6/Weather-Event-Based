@@ -18,6 +18,9 @@ class Broker:
     def __init__(self, index: int):
         super().__init__()
 
+        self.time = time.time()
+        self.counter = 0
+
         self.index = index
         self.routing_table: list = list()
 
@@ -61,12 +64,16 @@ class Broker:
 
     def _callback_consume_from_publisher(self, ch, method, properties, body):
         # publication = json.loads(body)
-        new_msg = publication_pb2.Publication()
+        new_msg = publication_pb2.MyPublication()
         new_msg.ParseFromString(body)
         json_data = MessageToJson(new_msg)
         json_data = json.loads(json_data)
+        json_time = float(json_data['time'])
+        json_data = json_data['publication']
         transformed_data = json_data.copy()
         transformed_data['date'] = f"{json_data['date']['day']}/{json_data['date']['month']}/{json_data['date']['year']}"
+        with open(f'arriving time-{self.index}.txt', 'a') as f:
+            f.write(f'{time.time()-float(json_time)}\n')
 
         # print(f"[Broker-{self.index}] Received from publisher: {transformed_data}")
         # publication = json.loads(body)
@@ -90,6 +97,13 @@ class Broker:
                     subscriber_id
                 )
                 self.last_publications.clear()
+
+        self.counter += 1
+        now = time.time()
+        if now - self.time > 3 * 60:
+            with open(f'broker-{self.index}.txt', 'w') as f:
+                f.write(f'{self.counter}\n')
+            exit(0)
 
     def _callback_consume_from_subscriber(self, ch, method, properties, body):
         message = json.loads(body)

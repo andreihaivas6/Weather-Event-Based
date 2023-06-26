@@ -1,5 +1,7 @@
 import json
 import multiprocessing
+import time
+
 import pika
 
 from typing import List
@@ -15,7 +17,8 @@ class Subscriber:
         self.index = index
         self.connection = None
         self.channel = None
-
+        self.counter = 0
+        self.time = time.time()
         self._declare_queue_to_subscribe_to()
 
     def _declare_queue_to_subscribe_to(self):
@@ -29,7 +32,7 @@ class Subscriber:
 
         print(f'[Subscriber-{self.index}] Started.')
 
-    def subscribe(self, subscription: dict):
+    def subscribe(self, subscription: dict, first_time: bool):
         message_to_send_bytes = json.dumps(subscription, indent=4).encode('utf-8')
 
         self.channel.basic_publish(
@@ -40,7 +43,10 @@ class Subscriber:
 
         print(f'[Subscriber-{self.index}] Subscribed to broker: {subscription}')
 
-        self._declare_queue_to_receive_from()
+        if first_time:
+            self._declare_queue_to_receive_from()
+
+    def start(self):
         self.channel.start_consuming()
 
     def _declare_queue_to_receive_from(self):
@@ -54,7 +60,14 @@ class Subscriber:
 
     def _receive_publication_matched_with_subscription(self, ch, method, properties, body):
         message = json.loads(body)
-        print(f'[Subscriber-{self.index}] Matched publication received: {message}')
+        # print(f'[Subscriber-{self.index}] Matched publication received: {message}')
+        self.counter += 1
+        now = time.time()
+        # print(self.counter)
+        # if now - self.time > 3 * 60:
+        with open(f'subscriber-{self.index}.txt', 'w') as f:
+            f.write(f'{self.counter}\n')
+        # exit(0)
 
     def close(self):
         self.connection.close()
@@ -64,7 +77,7 @@ def start_subscriber(index: int, need_complex_subscription: bool):
     subscriber = Subscriber(index)
 
     generator = SubscriptionsGeneratorParallel(
-        100,
+        10_000 // 3 + (1 if index == 1 else 0),
         need_complex_subscription,
         1,
         {
@@ -76,10 +89,11 @@ def start_subscriber(index: int, need_complex_subscription: bool):
             'direction': 50,
             'date': 50,
         },
-        50
+        25
     )
 
-    subscription = generator.generate()[0]
+    subscriptions = generator.generate()
+    subscription = subscriptions[0]
 
     if TEST_SUBSCRIPTIONS:
         if index == 1:  # subscriptie simpla
@@ -116,10 +130,22 @@ def start_subscriber(index: int, need_complex_subscription: bool):
         'id': index,
         'is_complex': need_complex_subscription,
         'subscription': subscription
-    })
+    },
+        True
+    )
+
+    for index in range(1, 10_000 // 3 + (1 if index == 1 else 0)):
+        subscriber.subscribe({
+            'id': index,
+            'is_complex': need_complex_subscription,
+            'subscription': subscriptions[index]
+        },
+            False
+        )
+    subscriber.start()
 
 
-TEST_SUBSCRIPTIONS = True
+TEST_SUBSCRIPTIONS = False
 
 
 if __name__ == '__main__':
