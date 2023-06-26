@@ -44,10 +44,10 @@ class Subscriber:
         self.channel.start_consuming()
 
     def _declare_queue_to_receive_from(self):
-        self.channel.queue_declare(queue=f'{Config.MATCHING_QUEUE_NAME}-{self.index}')
+        self.channel.queue_declare(queue=f'{Config.FILTER_QUEUE_NAME}-{self.index}')
 
         self.channel.basic_consume(
-            queue=f'{Config.MATCHING_QUEUE_NAME}-{self.index}',
+            queue=f'{Config.FILTER_QUEUE_NAME}-{self.index}',
             on_message_callback=self._receive_publication_matched_with_subscription,
             auto_ack=True
         )
@@ -87,7 +87,7 @@ def start_subscriber(index: int, need_complex_subscription: bool):
                 {
                     'field': 'temperature',
                     'operator': '>',
-                    'value': 5550
+                    'value': 10
                 }
             ]
         if index == 2:  # subscriptie complexa

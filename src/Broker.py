@@ -23,8 +23,8 @@ class Broker:
 
         self.last_publications: list = list()
 
-        if os.path.exists(f'broker-{index + 1}-serializer.json'):
-            with open(f'broker-{index + 1}-serializer.json', 'r') as file:
+        if os.path.exists(f'broker-{index}-serializer.json'):
+            with open(f'broker-{index}-serializer.json', 'r') as file:
                 data = json.load(file)
                 self.routing_table = data['routing_table']
                 self.last_publications = data['last_publications']
@@ -155,7 +155,7 @@ class Broker:
             body=message_to_send
         )
         print(
-            f"[Broker-{self.index}] Published to subscriber following matched publication: {publication}, id: {subscriber_id}")
+            f"[Broker-{self.index}] Published to Broker-Filter following matched publication: {publication}, id: {subscriber_id}")
 
     @staticmethod
     def condition_between_2_values(value1, value2, operator: str) -> bool:

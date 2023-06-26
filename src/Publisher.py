@@ -62,7 +62,7 @@ class Publisher:
 if __name__ == '__main__':
     publisher = Publisher()
 
-    generator = PublicationsGeneratorParallel(50000)
+    generator = PublicationsGeneratorParallel(10)
     publications = generator.generate()
 
     for publication in publications:
